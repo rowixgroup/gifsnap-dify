@@ -98,3 +98,8 @@ pagination, empty/error responses, bounded reads, redirects and Dify SDK output.
 See the source repository's validation record for the runtime and package checks
 actually performed. A passing package check is not Marketplace approval or
 proof of a production integration.
+
+The published preview also passed a complete Dify 1.17.1 workflow test:
+installation, tool discovery, invalid-input handling, and one real search with
+unchanged JSON output forwarded to the End node. See [VALIDATION.md](VALIDATION.md)
+for the run, reproducible manual test and remaining Cloud/visual-editor limits.
