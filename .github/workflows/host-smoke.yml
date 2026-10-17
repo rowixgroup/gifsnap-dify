@@ -1,0 +1,85 @@
+name: Disposable Dify host smoke test
+on:
+  workflow_dispatch:
+    inputs:
+      live_search:
+        description: 'Allow one synthetic happy cat search, limit 1 (owner QA, not adoption)'
+        type: boolean
+        default: false
+permissions:
+  contents: read
+concurrency:
+  group: dify-host-smoke
+  cancel-in-progress: false
+jobs:
+  host:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09
+        with:
+          persist-credentials: false
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09
+        with:
+          repository: langgenius/dify
+          ref: 8387590ace4a094de812b7847fc6a4c3a27cd52b # Release 1.17.1
+          path: upstream-dify
+          persist-credentials: false
+      - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1
+        with:
+          python-version: '3.12'
+      - uses: astral-sh/setup-uv@94527f2e458b27549849d47d273a16bec83a01e9
+        with:
+          enable-cache: false
+      - name: Install locked harness dependencies and test offline guards
+        run: |
+          uv sync --project gifsnap --frozen --no-dev
+          gifsnap/.venv/bin/python -m unittest discover -s tests -p test_host_smoke.py -v
+      - name: Fetch the exact published preview package
+        run: |
+          curl --fail --location --silent --show-error --max-time 60 \
+            https://github.com/rowixgroup/gifsnap-dify/releases/download/v0.1.0/gifsnap-0.1.0.difypkg \
+            -o "$RUNNER_TEMP/gifsnap-0.1.0.difypkg"
+          echo "5777002020066bd322a35dc59c5d884f2e98bcd018461a164c2a3efc4c858744  $RUNNER_TEMP/gifsnap-0.1.0.difypkg" | sha256sum --check
+      - name: Prepare a fresh loopback-only host
+        run: |
+          gifsnap/.venv/bin/python tests/host_smoke.py prepare \
+            --dify-source "$PWD/upstream-dify" --state "$RUNNER_TEMP/gifsnap-dify-host" \
+            --package "$RUNNER_TEMP/gifsnap-0.1.0.difypkg"
+      - name: Start disposable Dify services
+        timeout-minutes: 8
+        run: |
+          docker compose --project-name gifsnap-host-smoke \
+            --env-file "$RUNNER_TEMP/gifsnap-dify-host/.env" \
+            -f "$RUNNER_TEMP/gifsnap-dify-host/compose.yaml" up -d --quiet-pull
+      - name: Verify installed tool through an unpublished workflow
+        timeout-minutes: 13
+        env:
+          LIVE_SEARCH: ${{ inputs.live_search }}
+        run: |
+          extra=()
+          if [ "$LIVE_SEARCH" = true ]; then extra+=(--live); fi
+          gifsnap/.venv/bin/python tests/host_smoke.py run \
+            --state "$RUNNER_TEMP/gifsnap-dify-host" \
+            --report test-results/host-smoke.json "${extra[@]}"
+      - name: Tear down test services and delete ephemeral credentials
+        if: always()
+        run: |
+          cleanup_status=0
+          if [ -f "$RUNNER_TEMP/gifsnap-dify-host/compose.yaml" ]; then
+            docker compose --project-name gifsnap-host-smoke \
+              --env-file "$RUNNER_TEMP/gifsnap-dify-host/.env" \
+              -f "$RUNNER_TEMP/gifsnap-dify-host/compose.yaml" down --volumes --remove-orphans --timeout 10 || cleanup_status=$?
+          fi
+          # Postgres creates root-owned data below this exact generated directory.
+          sudo rm -rf -- "$RUNNER_TEMP/gifsnap-dify-host"
+          rm -f -- "$RUNNER_TEMP/gifsnap-0.1.0.difypkg"
+          exit "$cleanup_status"
+      - name: Save only the aggregate, credential-free result
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: dify-host-smoke-summary
+          path: test-results/host-smoke.json
+          if-no-files-found: ignore
+          retention-days: 1
