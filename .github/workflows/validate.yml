@@ -1,0 +1,36 @@
+name: Validate plugin
+on:
+  push:
+  pull_request:
+permissions:
+  contents: read
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09
+      - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1
+        with:
+          python-version: '3.12'
+      - uses: astral-sh/setup-uv@94527f2e458b27549849d47d273a16bec83a01e9
+      - name: Install locked dependencies
+        run: uv sync --project gifsnap --frozen --no-dev
+      - name: Test without production API requests
+        run: gifsnap/.venv/bin/python -m unittest discover -s tests -v
+      - name: Download official pinned plugin CLI
+        run: |
+          curl --fail --location --silent --show-error https://github.com/langgenius/dify-plugin-daemon/releases/download/0.6.11/dify-plugin-linux-amd64 -o /tmp/dify
+          echo "e68208928fbd8e7bc2c4cf0943f5091f8fbd0a25119ab4f36d6071b94a69a6fc  /tmp/dify" | sha256sum --check
+          chmod +x /tmp/dify
+          /tmp/dify version
+      - name: Build package
+        run: |
+          mkdir -p dist
+          /tmp/dify plugin package ./gifsnap -o ./dist/gifsnap-0.1.0.difypkg
+      - name: Test packaged plugin in official local runtime
+        run: gifsnap/.venv/bin/python tests/package_smoke.py dist/gifsnap-0.1.0.difypkg --cli /tmp/dify --report dist/runtime-check.json
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: gifsnap-dify-preview
+          path: dist/

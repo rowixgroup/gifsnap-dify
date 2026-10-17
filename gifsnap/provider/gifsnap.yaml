@@ -1,0 +1,16 @@
+identity:
+  author: rowixgroup
+  name: gifsnap
+  label:
+    en_US: GifSnap
+  description:
+    en_US: Search the GifSnap GIF catalog. No API key is currently required.
+  icon: icon.png
+  tags:
+    - search
+    - image
+tools:
+  - tools/search_gifs.yaml
+extra:
+  python:
+    source: provider/gifsnap.py
