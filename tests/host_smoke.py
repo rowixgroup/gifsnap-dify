@@ -6,7 +6,7 @@ verifies the upstream source revision and creates a fresh private state folder.
 The live case is opt-in and makes at most one workflow invocation; no retries.
 
 Official API source: langgenius/dify at DIFY_REVISION, particularly
-controllers/console/{setup,auth/login,workspace/plugin,app/workflow}.py.
+controllers/console/{setup,auth/login,workspace/plugin,app/app_import,app/workflow}.py.
 This tests the actual console API, plugin daemon and workflow executor, not UI.
 """
 
@@ -30,8 +30,7 @@ import httpx
 import yaml
 
 DIFY_REVISION = "8387590ace4a094de812b7847fc6a4c3a27cd52b"
-PACKAGE_SHA256 = "5777002020066bd322a35dc59c5d884f2e98bcd018461a164c2a3efc4c858744"
-PACKAGE_BYTES = 45944
+MARKETPLACE_IDENTIFIER = "rowixgroup/gifsnap:0.1.0@a2a60aaee179e3dbe9826795c2ff73dfb0cf722945b17c52fd6a9066c5ddc6fe"
 BASE_URL = "http://127.0.0.1:51873"
 PROVIDER_ID = "rowixgroup/gifsnap/gifsnap"
 SERVICES = ("init_permissions", "db_postgres", "redis", "ssrf_proxy", "plugin_daemon", "api", "worker")
@@ -55,9 +54,41 @@ def checked_state(path: Path) -> Path:
     return path
 
 
-def package_ok(path: Path) -> bool:
-    data = path.read_bytes()
-    return len(data) == PACKAGE_BYTES and hashlib.sha256(data).hexdigest() == PACKAGE_SHA256
+def check_graph(graph: dict) -> None:
+    """Refuse extra nodes, outbound tools, changed inputs, or automatic retries."""
+    nodes = graph.get("nodes", [])
+    require(len(nodes) == 3 and {node.get("id") for node in nodes} == {"start", "tool", "end"}, "unexpected_template_nodes")
+    data = {node["id"]: node["data"] for node in nodes}
+    require([data[name].get("type") for name in ("start", "tool", "end")] == ["start", "tool", "end"], "unexpected_template_node_types")
+    variables = data["start"].get("variables", [])
+    require(len(variables) == 1 and variables[0].get("variable") == "topic"
+            and variables[0].get("type") == "text-input" and variables[0].get("required") is True
+            and variables[0].get("max_length") == 200, "unexpected_template_input")
+    tool = data["tool"]
+    require(tool.get("provider_id") == PROVIDER_ID and tool.get("provider_type") == "builtin"
+            and tool.get("provider_name") == "gifsnap" and tool.get("tool_name") == "search_gifs"
+            and tool.get("tool_node_version") == "2", "unexpected_template_tool")
+    require(tool.get("tool_parameters") == {"query": {"type": "variable", "value": ["start", "topic"]},
+                                            "page": {"type": "constant", "value": 1}}
+            and tool.get("tool_configurations") == {"limit": {"type": "constant", "value": 1}}, "unexpected_template_parameters")
+    require(tool.get("retry_config") == {"retry_enabled": False, "max_retries": 0, "retry_interval": 0}, "template_retries_not_disabled")
+    require(data["end"].get("outputs") == [{"variable": "gifs", "value_selector": ["tool", "json"], "value_type": "array[object]"}], "unexpected_template_output")
+    edges = graph.get("edges", [])
+    require(len(edges) == 2 and {(edge.get("source"), edge.get("target")) for edge in edges}
+            == {("start", "tool"), ("tool", "end")}, "unexpected_template_edges")
+
+
+def checked_template(content: str) -> dict:
+    require(len(content.encode()) < 65536, "template_too_large")
+    document = yaml.safe_load(content)
+    require(isinstance(document, dict) and document.get("kind") == "app" and document.get("version") == "0.7.0"
+            and document.get("app", {}).get("mode") == "workflow", "unexpected_template_format")
+    require(document.get("dependencies") == [{"type": "marketplace", "value": {
+        "marketplace_plugin_unique_identifier": MARKETPLACE_IDENTIFIER}}], "unexpected_template_dependency")
+    workflow = document["workflow"]
+    require(not workflow.get("environment_variables") and not workflow.get("conversation_variables"), "template_contains_variables")
+    check_graph(workflow["graph"])
+    return document
 
 
 def env_defaults(text: str) -> dict[str, str]:
@@ -98,12 +129,13 @@ def isolated_compose(original: dict, docker_dir: Path, state: Path) -> dict:
     return result
 
 
-def prepare(source: Path, state_path: Path, package: Path) -> None:
+def prepare(source: Path, state_path: Path, template: Path) -> None:
     state = checked_state(state_path)
     require(not state.exists(), "state_must_be_fresh")
     revision = subprocess.check_output(["git", "-C", str(source), "rev-parse", "HEAD"], text=True).strip()
     require(revision == DIFY_REVISION, "upstream_revision_mismatch")
-    require(package_ok(package), "release_package_mismatch")
+    template_bytes = template.read_bytes()
+    checked_template(template_bytes.decode())
     state.mkdir(mode=0o700)
     docker_dir = source.resolve() / "docker"
     original = yaml.safe_load((docker_dir / "docker-compose.yaml").read_text())
@@ -122,18 +154,18 @@ def prepare(source: Path, state_path: Path, package: Path) -> None:
         "CELERY_WORKER_AMOUNT": "1", "SERVER_WORKER_AMOUNT": "1",
         "LOG_LEVEL": "ERROR", "ENABLE_REQUEST_LOGGING": "false",
         "PLUGIN_PYTHON_ENV_INIT_TIMEOUT": "180", "PLUGIN_MAX_EXECUTION_TIMEOUT": "60",
-        "MARKETPLACE_ENABLED": "false", "CHECK_UPDATE_URL": "",
-        # Deliberately permits the exact checksum-verified unsigned preview ONLY
-        # in this new, isolated test host. No existing workspace is modified.
-        "FORCE_VERIFYING_SIGNATURE": "false",
+        "MARKETPLACE_ENABLED": "true", "MARKETPLACE_API_URL": "https://marketplace.dify.ai", "CHECK_UPDATE_URL": "",
+        # The actual Marketplace dependency must pass Dify's signature check.
+        # An unsigned preview package is never substituted in this test.
+        "FORCE_VERIFYING_SIGNATURE": "true",
     })
     env_path = state / ".env"
     env_path.write_text("\n".join(f"{key}={val}" for key, val in values.items()) + "\n")
     env_path.chmod(0o600)
     (state / "compose.yaml").write_text(yaml.safe_dump(isolated_compose(original, docker_dir, state), sort_keys=False))
-    (state / "package.difypkg").write_bytes(package.read_bytes())
+    (state / "workflow.yml").write_bytes(template_bytes)
     marker = state / "test-state.json"
-    marker.write_text(json.dumps({"source_revision": revision, "package_sha256": PACKAGE_SHA256,
+    marker.write_text(json.dumps({"source_revision": revision, "template_sha256": hashlib.sha256(template_bytes).hexdigest(),
                                   "init_password": init_password, "owner_password": owner_password}))
     marker.chmod(0o600)
     print("Disposable loopback-only host prepared; test credentials remain private.")
@@ -189,10 +221,10 @@ class Console:
             time.sleep(3)
         raise CheckFailure("host_readiness_timeout")
 
-    def stream_run(self, app_id: str) -> list[dict]:
+    def stream_run(self, app_id: str, inputs: dict | None = None) -> list[dict]:
         events, byte_count = [], 0
         deadline = time.monotonic() + 90
-        with self.client.stream("POST", f"/apps/{app_id}/workflows/draft/run", json={"inputs": {}, "files": []},
+        with self.client.stream("POST", f"/apps/{app_id}/workflows/draft/run", json={"inputs": inputs or {}, "files": []},
                                 headers=self.headers(), timeout=90) as response:
             require(response.status_code == 200, f"workflow_http_{response.status_code}")
             for line in response.iter_lines():
@@ -243,18 +275,70 @@ def verify_success(events: list[dict]) -> dict:
             "structured_output_forwarded_unchanged": True}
 
 
+def imported_app(result: dict) -> str:
+    # Current DSL version should import directly. Never silently confirm a
+    # version mismatch or claim a partial/unsupported import is a successful test.
+    require(result.get("status") == "completed", "dsl_import_not_completed")
+    require(not result.get("warnings"), "dsl_import_has_warnings")
+    require(result.get("imported_dsl_version") == "0.7.0" and result.get("current_dsl_version") == "0.7.0", "dsl_import_version_mismatch")
+    require(result.get("app_mode") == "workflow" and bool(result.get("app_id")), "dsl_import_missing_workflow")
+    return result["app_id"]
+
+
+def check_dependencies(result: dict, *, installed: bool) -> None:
+    dependencies = result.get("leaked_dependencies")
+    require(isinstance(dependencies, list), "dependency_response_missing")
+    if installed:
+        require(not dependencies, "dependency_still_missing")
+    else:
+        require(len(dependencies) == 1 and dependencies[0].get("type") == "marketplace"
+                and dependencies[0].get("value", {}).get("marketplace_plugin_unique_identifier") == MARKETPLACE_IDENTIFIER,
+                "unexpected_missing_dependency")
+
+
+def wait_install(console: Console, installation: dict) -> None:
+    if installation.get("all_installed"):
+        return
+    task = installation.get("task_id")
+    require(bool(task), "missing_install_task")
+    deadline = time.monotonic() + 300
+    while time.monotonic() < deadline:
+        status = console.request("GET", "/workspaces/current/plugin/tasks/" + quote(task, safe=""))["task"]["status"]
+        require(status in {"pending", "running", "success"}, "marketplace_install_failed")
+        if status == "success":
+            return
+        time.sleep(3)
+    raise CheckFailure("marketplace_install_timeout")
+
+
+def check_installed(result: dict) -> None:
+    matches = [plugin for plugin in result.get("plugins", [])
+               if plugin.get("plugin_unique_identifier") == MARKETPLACE_IDENTIFIER]
+    require(len(matches) == 1 and matches[0].get("source") == "marketplace", "signed_marketplace_install_not_verified")
+
+
 def run(state_path: Path, report_path: Path, live: bool) -> int:
     report = {"recorded_at_utc": datetime.now(timezone.utc).isoformat(), "status": "failed",
               "dify_version": "1.17.1", "dify_revision": DIFY_REVISION, "plugin_daemon": "0.6.10-local",
-              "package_sha256": PACKAGE_SHA256, "host_kind": "disposable GitHub runner, console API",
+              "marketplace_plugin_unique_identifier": MARKETPLACE_IDENTIFIER,
+              "host_kind": "disposable GitHub runner, console API", "mode": "marketplace_template_import",
               "visual_ui_test": False, "published_app": False, "external_adoption": False,
+              "qa_marketplace_installs_attempted": 0,
               "live_qa_requests_attempted": 0, "live_qa_query": "happy cat" if live else None,
               "cases": {}, "failure_stage": "state"}
     console = None
     try:
         state = checked_state(state_path)
         marker = json.loads((state / "test-state.json").read_text())
-        require(marker.get("source_revision") == DIFY_REVISION and package_ok(state / "package.difypkg"), "state_mismatch")
+        template_bytes = (state / "workflow.yml").read_bytes()
+        require(marker.get("source_revision") == DIFY_REVISION
+                and marker.get("template_sha256") == hashlib.sha256(template_bytes).hexdigest(), "state_mismatch")
+        checked_template(template_bytes.decode())
+        values = env_defaults((state / ".env").read_text())
+        require(values.get("MARKETPLACE_ENABLED") == "true" and values.get("FORCE_VERIFYING_SIGNATURE") == "true"
+                and values.get("MARKETPLACE_API_URL") == "https://marketplace.dify.ai", "signed_marketplace_settings_required")
+        report["signature_enforcement_enabled"] = True
+        report["template_sha256"] = marker["template_sha256"]
         console = Console()
         report["failure_stage"] = "readiness"
         console.wait()
@@ -266,51 +350,46 @@ def run(state_path: Path, report_path: Path, live: bool) -> int:
         console.request("POST", "/login", json={"email": "gifsnap-host-smoke@example.com", "remember_me": False,
                                                  "password": base64.b64encode(marker["owner_password"].encode()).decode()})
         require(bool(console.client.cookies.get("csrf_token")), "missing_csrf_cookie")
-        report["failure_stage"] = "package_upload"
-        with (state / "package.difypkg").open("rb") as package:
-            decoded = console.request("POST", "/workspaces/current/plugin/upload/pkg", files={"pkg": ("gifsnap-0.1.0.difypkg", package, "application/octet-stream")})
-        identifier = decoded.get("unique_identifier", "")
-        require(identifier.startswith("rowixgroup/gifsnap:0.1.0@"), "unexpected_plugin_identity")
-        report["failure_stage"] = "package_install"
-        installation = console.request("POST", "/workspaces/current/plugin/install/pkg", json={"plugin_unique_identifiers": [identifier]})
-        if not installation.get("all_installed"):
-            task = installation.get("task_id")
-            require(bool(task), "missing_install_task")
-            deadline = time.monotonic() + 300
-            while time.monotonic() < deadline:
-                status = console.request("GET", "/workspaces/current/plugin/tasks/" + quote(task, safe=""))["task"]["status"]
-                require(status != "failed", "package_install_failed")
-                if status == "success":
-                    break
-                time.sleep(3)
-            else:
-                raise CheckFailure("package_install_timeout")
-        report["cases"]["package_install"] = "passed"
+        report["failure_stage"] = "template_import"
+        app_id = imported_app(console.request("POST", "/apps/imports", json={
+            "mode": "yaml-content", "yaml_content": template_bytes.decode()}))
+        report["cases"]["exact_template_import"] = "completed_without_warnings"
+        dependency_path = f"/apps/imports/{app_id}/check-dependencies"
+        report["failure_stage"] = "dependency_detection"
+        check_dependencies(console.request("GET", dependency_path), installed=False)
+        report["cases"]["marketplace_dependency_detected"] = "passed"
+        report["failure_stage"] = "marketplace_install"
+        report["qa_marketplace_installs_attempted"] = 1
+        installation = console.request("POST", "/workspaces/current/plugin/install/marketplace", json={
+            "plugin_unique_identifiers": [MARKETPLACE_IDENTIFIER]})
+        wait_install(console, installation)
+        # Verify both installed provenance and import dependency resolution.
+        # The latter alone could be empty after its 10-minute Redis TTL expires.
+        check_installed(console.request("GET", "/workspaces/current/plugin/list"))
+        check_dependencies(console.request("GET", dependency_path), installed=True)
+        report["cases"]["signed_marketplace_dependency_install"] = "passed"
         report["failure_stage"] = "tool_discovery"
         tools = console.request("GET", "/workspaces/current/tool-provider/builtin/" + PROVIDER_ID + "/tools")
         require(isinstance(tools, list) and any(tool.get("name") == "search_gifs" for tool in tools), "tool_not_discoverable")
         report["cases"]["tool_discovery"] = "passed"
-        report["failure_stage"] = "draft_creation"
-        app = console.request("POST", "/apps", json={"name": "GifSnap synthetic host QA", "description": "Disposable owner QA; unpublished; no model or outbound posting.", "mode": "workflow"})
-        app_id = app.get("id")
-        require(bool(app_id), "missing_app_id")
+        report["failure_stage"] = "imported_draft"
         draft_path = f"/apps/{app_id}/workflows/draft"
-        # Nonempty but too long ensures the plugin's own guard is exercised,
-        # rather than merely the host's generic required-input validation.
-        console.request("POST", draft_path, json={"graph": workflow_graph("x" * 201), "features": {}, "conversation_variables": []})
+        draft = console.request("GET", draft_path)
+        check_graph(draft.get("graph", {}))
+        report["cases"]["imported_graph_contract"] = "passed"
         report["failure_stage"] = "invalid_input_workflow"
-        verify_invalid(console.stream_run(app_id))
-        report["cases"]["invalid_input_workflow"] = "passed"
+        # Nonempty whitespace passes the host's required text input check but
+        # is rejected after trimming by the plugin, before its network request.
+        # Only that specific error counts as the plugin guard passing.
+        verify_invalid(console.stream_run(app_id, {"topic": "   "}))
+        report["cases"]["invalid_input_workflow"] = "plugin_guard_passed"
         if live:
-            report["failure_stage"] = "live_draft_update"
-            draft = console.request("GET", draft_path)
-            console.request("POST", draft_path, json={"graph": workflow_graph("happy cat"), "features": {}, "hash": draft["hash"], "conversation_variables": []})
             report["failure_stage"] = "live_workflow"
             # This is the only live invocation; failures are intentionally not retried.
             report["live_qa_requests_attempted"] = 1
             report["live_qa_started_at_utc"] = datetime.now(timezone.utc).isoformat()
-            report["cases"]["live_workflow"] = verify_success(console.stream_run(app_id))
-        report["status"] = "passed" if live else "passed_offline_live_skipped"
+            report["cases"]["live_workflow"] = verify_success(console.stream_run(app_id, {"topic": "happy cat"}))
+        report["status"] = "passed" if live else "passed_host_live_search_skipped"
         report.pop("failure_stage")
     except CheckFailure as error:
         report["failure_code"] = str(error)
@@ -332,7 +411,7 @@ def main() -> int:
     prep = sub.add_parser("prepare")
     prep.add_argument("--dify-source", type=Path, required=True)
     prep.add_argument("--state", type=Path, required=True)
-    prep.add_argument("--package", type=Path, required=True)
+    prep.add_argument("--template", type=Path, required=True)
     smoke = sub.add_parser("run")
     smoke.add_argument("--state", type=Path, required=True)
     smoke.add_argument("--report", type=Path, required=True)
@@ -340,7 +419,7 @@ def main() -> int:
     args = parser.parse_args()
     if args.command == "prepare":
         try:
-            prepare(args.dify_source, args.state, args.package)
+            prepare(args.dify_source, args.state, args.template)
         except CheckFailure as error:
             print("Preparation refused: " + str(error), file=sys.stderr)
             return 1
