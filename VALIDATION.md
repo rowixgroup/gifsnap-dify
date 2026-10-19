@@ -1,4 +1,28 @@
-# Validation record — October 17, 2026
+# Validation record
+
+## October 19, 2026 — importable workflow and signed Marketplace installation
+
+- 36 offline tests pass, including the example's variable bindings, empty/error
+  handling and the host test's isolation and dependency checks.
+- The exact [workflow YAML](examples/search-gifs.yml), SHA-256
+  `147dd5c5ff41fff98d30bd4cd7a38531bce1137dc18151968df30ea663566197`,
+  imported into a fresh Dify Community Edition 1.17.1 workspace without warnings.
+- Dify detected and installed its exact Marketplace 0.1.0 dependency with
+  signature verification enabled. Installed source and package identifier were
+  verified; the imported graph was not replaced by a test graph.
+- Whitespace input reached the plugin's validation and failed before a search.
+  One explicitly enabled `happy cat` search returned one GIF, preserving the
+  full media URL, poster and structured JSON through the End node. The optional
+  animated-preview field was absent in that result.
+- [Successful test run](https://github.com/rowixgroup/gifsnap-dify/actions/runs/39236905817),
+  tested source commit `4bd6e8a290d954904e8458332f194f3caa032c69`;
+  live QA search began October 19 at 10:23:31 UTC. Teardown succeeded.
+- This exercised the real console API and workflow engine, not the visual editor
+  or Dify Cloud. One Marketplace installation and one search are owner/agent QA;
+  they do not establish independent usage, retention or revenue. No application
+  was published and no existing workspace was modified.
+
+## October 17, 2026 — historical preview-package validation
 
 - Python 3.12.13; Dify plugin SDK 0.10.2; official plugin CLI 0.6.11.
 - 21 offline tests pass: inputs, bounded requests, URL encoding, media/rendition
@@ -34,22 +58,25 @@
 - Marketplace acceptance, independent installs and retained integrations have
   not been established by these checks.
 
-Reproduce offline tests from the repository root:
+## Reproduce the current checks
+
+Run offline tests from the repository root:
 
 ```sh
 uv sync --project gifsnap --frozen --no-dev
 gifsnap/.venv/bin/python -m unittest discover -s tests -v
-dify plugin package ./gifsnap -o ./gifsnap-0.1.0.difypkg
-gifsnap/.venv/bin/python tests/package_smoke.py gifsnap-0.1.0.difypkg --cli dify
+dify plugin package ./gifsnap -o ./gifsnap-0.1.1.difypkg
+gifsnap/.venv/bin/python tests/package_smoke.py gifsnap-0.1.1.difypkg --cli dify
 ```
 
 The default package smoke test does not call GifSnap. `--live` explicitly enables
 one synthetic API request; use it only when necessary and classify it as QA.
 
 The separate **Disposable Dify host smoke test** workflow can be run manually
-from GitHub Actions. It defaults to installation, discovery and invalid-input
-checks without a live GifSnap search. Enable `live_search` only when a real
-workflow result needs verification; it permits one search and does not retry it.
-The harness refuses existing workspaces and non-GitHub-runner execution. Its
-temporary package-trust configuration is for this isolated test only; follow
-your own workspace's installation policy when using the preview.
+from GitHub Actions. It imports `examples/search-gifs.yml` into a fresh workspace
+and verifies its signed Marketplace dependency, discovery and invalid-input
+handling. Signature verification stays enabled. It defaults to no live GifSnap
+search. Enable `live_search` only when a real workflow result needs verification;
+it permits one search and does not retry it. The harness refuses existing
+workspaces and non-GitHub-runner execution. Every test installation and live
+search should be classified as QA rather than independent adoption.

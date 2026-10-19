@@ -27,11 +27,11 @@ An empty `gifs[0].data` means no matches. A timeout, rate limit or invalid topic
 
 Enter only a topic, 1–200 characters after trimming. Do not include private conversations, secrets or personal information. The tool sends that topic to GifSnap, and Dify may retain workflow inputs and outputs in its run history. See the [plugin privacy policy](https://github.com/rowixgroup/gifsnap-dify/blob/codex/dify-plugin/gifsnap/PRIVACY.md) and [API documentation](https://gifsnap.com/docs#rest).
 
-## Validation boundary
+## Verification
 
-This file follows Dify 1.17.1's app DSL **0.7.0** and reuses the Start → Tool → End contract from our [historically tested 0.1.0 host workflow](https://github.com/rowixgroup/gifsnap-dify/actions/runs/39064995661). Offline checks cover its selectors, actual plugin input validation, original URL forwarding, empty results and failures using synthetic HTTP responses.
+This exact file passed a [fresh Dify 1.17.1 import and workflow test](https://github.com/rowixgroup/gifsnap-dify/actions/runs/39236905817) on October 19, 2026. It imported without warnings, resolved the signed Marketplace 0.1.0 dependency with signature verification enabled, rejected invalid input, and returned one real GIF with its full URL and structured output unchanged. Temporary services and test credentials were removed afterward.
 
-This new importable file has **not** been imported into Dify Cloud or a running local Dify workspace. The earlier host test does not establish that this YAML was imported. No live GIF search is required to run its offline checks:
+The host test used Dify's console API and workflow engine, not its visual editor or Dify Cloud. Its one installation and one search were owner QA, not an independent integration. The 36 offline checks cover selectors, plugin input validation, original URL forwarding, empty results, failures and test isolation using synthetic responses. No live GIF search is required to run them:
 
 ```sh
 uv sync --project gifsnap --frozen --no-dev
