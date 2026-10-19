@@ -7,25 +7,31 @@ API key is currently required. It does not send messages or automatically post G
 Publisher: Rowix (`rowixgroup`).
 Source: https://github.com/rowixgroup/gifsnap-dify
 Support: https://github.com/rowixgroup/gifsnap-dify/issues or iraklirowix@gmail.com
-API reference: https://gifsnap.com/docs/api
-Privacy: [PRIVACY.md](gifsnap/PRIVACY.md)
+API reference: https://gifsnap.com/docs#rest
+Privacy: [Plugin privacy policy](https://github.com/rowixgroup/gifsnap-dify/blob/codex/dify-plugin/gifsnap/PRIVACY.md)
 
-## Install
+## Install from Dify Marketplace
 
-1. Download `gifsnap-0.1.0.difypkg` from this repository's
-   [Releases](https://github.com/rowixgroup/gifsnap-dify/releases).
-2. In Dify, open **Plugins → Install plugin → Local Package** and choose that file.
-   You need permission to install plugins in your workspace. This package is
-   initially distributed from GitHub; a Marketplace listing is not implied.
-3. In a Workflow or Chatflow, add **Tools → GifSnap → Search GIFs**. In an Agent,
+1. Open [GifSnap on Dify Marketplace](https://marketplace.dify.ai/plugin/rowixgroup/gifsnap)
+   and select **Install**. Confirm the publisher is `rowixgroup`, then follow the
+   prompts for your Dify workspace. You need permission to install plugins.
+2. In a Workflow or Chatflow, add **Tools → GifSnap → Search GIFs**. In an Agent,
    add **GifSnap → Search GIFs** to its available tools.
-4. Set `query` to a short topic, for example `happy cat`. Use `limit: 3` and
+3. Set `query` to a short topic, for example `happy cat`. Use `limit: 3` and
    `page: 1` for a small first response. No credentials form is needed.
 
 Requires Dify 1.17.1 or later and outbound HTTPS access to `gifsnap.com` from the
-plugin runtime. Follow your workspace's plugin installation policy. If your
-workspace requires Marketplace signatures, wait for a signed listing rather
-than weakening that policy.
+plugin runtime. Follow your workspace's plugin installation policy. Marketplace
+installs use the approved version shown on the listing; source changes or GitHub
+packages may precede approval of a newer Marketplace version.
+
+### Alternative: local package
+
+If your workspace policy permits local packages, download a `.difypkg` from
+[GitHub Releases](https://github.com/rowixgroup/gifsnap-dify/releases), then open
+**Plugins → Install plugin → Local Package** in Dify and choose that file.
+Use the Marketplace installation when your workspace requires Marketplace
+signatures; do not weaken its package-verification policy.
 
 ## Inputs
 
@@ -89,7 +95,7 @@ python3.12 -m venv .venv
 . .venv/bin/activate
 pip install -r gifsnap/requirements.txt
 python -m unittest discover -s tests -v
-dify plugin package ./gifsnap -o ./gifsnap-0.1.0.difypkg
+dify plugin package ./gifsnap -o ./gifsnap-0.1.1.difypkg
 ```
 
 The tests use synthetic responses and make no external API requests. They cover

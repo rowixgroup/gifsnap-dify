@@ -27,9 +27,9 @@ jobs:
       - name: Build package
         run: |
           mkdir -p dist
-          /tmp/dify plugin package ./gifsnap -o ./dist/gifsnap-0.1.0.difypkg
+          /tmp/dify plugin package ./gifsnap -o ./dist/gifsnap-0.1.1.difypkg
       - name: Test packaged plugin in official local runtime
-        run: gifsnap/.venv/bin/python tests/package_smoke.py dist/gifsnap-0.1.0.difypkg --cli /tmp/dify --report dist/runtime-check.json
+        run: gifsnap/.venv/bin/python tests/package_smoke.py dist/gifsnap-0.1.1.difypkg --cli /tmp/dify --report dist/runtime-check.json
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
           name: gifsnap-dify-preview
