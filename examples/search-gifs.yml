@@ -1,0 +1,140 @@
+# Dify 1.17.1 / app DSL 0.7.0. Import as a new Workflow.
+# Pins the approved Marketplace package, not the unsigned GitHub preview.
+app:
+  name: GifSnap — Search GIFs
+  description: Enter a short topic and receive up to one GIF result as structured JSON.
+    No AI model or API key is currently required.
+  icon: 🎞️
+  icon_background: '#E8F5D0'
+  mode: workflow
+  use_icon_as_answer_icon: false
+dependencies:
+- type: marketplace
+  value:
+    marketplace_plugin_unique_identifier: rowixgroup/gifsnap:0.1.0@a2a60aaee179e3dbe9826795c2ff73dfb0cf722945b17c52fd6a9066c5ddc6fe
+kind: app
+version: 0.7.0
+workflow:
+  conversation_variables: []
+  environment_variables: []
+  features:
+    file_upload:
+      enabled: false
+    opening_statement: ''
+    retriever_resource:
+      enabled: false
+    sensitive_word_avoidance:
+      enabled: false
+    speech_to_text:
+      enabled: false
+    suggested_questions: []
+    suggested_questions_after_answer:
+      enabled: false
+    text_to_speech:
+      enabled: false
+  graph:
+    nodes:
+    - id: start
+      type: custom
+      position:
+        x: 0
+        y: 0
+      data:
+        type: start
+        title: GIF topic
+        variables:
+        - variable: topic
+          label: GIF topic
+          type: text-input
+          required: true
+          max_length: 200
+          options: []
+        desc: Enter a short topic only. Do not paste private messages or secrets.
+        selected: false
+      width: 244
+      height: 110
+      sourcePosition: right
+      targetPosition: left
+      selected: false
+    - id: tool
+      type: custom
+      position:
+        x: 300
+        y: 0
+      data:
+        type: tool
+        title: Search GIFs
+        provider_id: rowixgroup/gifsnap/gifsnap
+        provider_type: builtin
+        provider_name: gifsnap
+        tool_name: search_gifs
+        tool_label: Search GIFs
+        tool_node_version: '2'
+        tool_configurations:
+          limit:
+            type: constant
+            value: 1
+        tool_parameters:
+          query:
+            type: variable
+            value:
+            - start
+            - topic
+          page:
+            type: constant
+            value: 1
+        retry_config:
+          retry_enabled: false
+          max_retries: 0
+          retry_interval: 0
+        desc: One read-only search for the topic you entered.
+        selected: false
+      width: 244
+      height: 110
+      sourcePosition: right
+      targetPosition: left
+      selected: false
+    - id: end
+      type: custom
+      position:
+        x: 600
+        y: 0
+      data:
+        type: end
+        title: GIF search result
+        outputs:
+        - variable: gifs
+          value_selector:
+          - tool
+          - json
+          value_type: array[object]
+        desc: Original tool JSON messages, including data and pagination.
+        selected: false
+      width: 244
+      height: 110
+      sourcePosition: right
+      targetPosition: left
+      selected: false
+    edges:
+    - id: start-tool
+      source: start
+      target: tool
+      type: custom
+      sourceHandle: source
+      targetHandle: target
+      data:
+        sourceType: start
+        targetType: tool
+    - id: tool-end
+      source: tool
+      target: end
+      type: custom
+      sourceHandle: source
+      targetHandle: target
+      data:
+        sourceType: tool
+        targetType: end
+    viewport:
+      x: 0
+      y: 0
+      zoom: 1

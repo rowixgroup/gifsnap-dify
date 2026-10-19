@@ -34,25 +34,19 @@ jobs:
       - name: Install locked harness dependencies and test offline guards
         run: |
           uv sync --project gifsnap --frozen --no-dev
-          gifsnap/.venv/bin/python -m unittest discover -s tests -p test_host_smoke.py -v
-      - name: Fetch the exact published preview package
-        run: |
-          curl --fail --location --silent --show-error --max-time 60 \
-            https://github.com/rowixgroup/gifsnap-dify/releases/download/v0.1.0/gifsnap-0.1.0.difypkg \
-            -o "$RUNNER_TEMP/gifsnap-0.1.0.difypkg"
-          echo "5777002020066bd322a35dc59c5d884f2e98bcd018461a164c2a3efc4c858744  $RUNNER_TEMP/gifsnap-0.1.0.difypkg" | sha256sum --check
-      - name: Prepare a fresh loopback-only host
+          gifsnap/.venv/bin/python -m unittest discover -s tests -v
+      - name: Prepare a fresh loopback-only host with signature verification
         run: |
           gifsnap/.venv/bin/python tests/host_smoke.py prepare \
             --dify-source "$PWD/upstream-dify" --state "$RUNNER_TEMP/gifsnap-dify-host" \
-            --package "$RUNNER_TEMP/gifsnap-0.1.0.difypkg"
+            --template "$PWD/examples/search-gifs.yml"
       - name: Start disposable Dify services
         timeout-minutes: 8
         run: |
           docker compose --project-name gifsnap-host-smoke \
             --env-file "$RUNNER_TEMP/gifsnap-dify-host/.env" \
             -f "$RUNNER_TEMP/gifsnap-dify-host/compose.yaml" up -d --quiet-pull
-      - name: Verify installed tool through an unpublished workflow
+      - name: Import the example and verify its signed Marketplace dependency
         timeout-minutes: 13
         env:
           LIVE_SEARCH: ${{ inputs.live_search }}
@@ -73,7 +67,6 @@ jobs:
           fi
           # Postgres creates root-owned data below this exact generated directory.
           sudo rm -rf -- "$RUNNER_TEMP/gifsnap-dify-host"
-          rm -f -- "$RUNNER_TEMP/gifsnap-0.1.0.difypkg"
           exit "$cleanup_status"
       - name: Save only the aggregate, credential-free result
         if: always()

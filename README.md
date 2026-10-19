@@ -33,6 +33,12 @@ If your workspace policy permits local packages, download a `.difypkg` from
 Use the Marketplace installation when your workspace requires Marketplace
 signatures; do not weaken its package-verification policy.
 
+### Try a ready-made workflow
+
+The [minimal workflow example](examples/README.md) connects a manual GIF topic to
+Search GIFs and returns structured media links. It needs no AI model credentials.
+Its setup guide explains the pinned Marketplace dependency and validation limits.
+
 ## Inputs
 
 | Parameter | Purpose | Default |
