@@ -1,5 +1,11 @@
 # Search GIFs workflow
 
+**Security notice:** this historical example pins 0.1.0, which includes a known
+`certifi` vulnerability. Do not import it for a new deployment. Use manual
+workflow setup with GifSnap 0.1.2 or later; the example will be updated after
+the signed Marketplace 0.1.2 identifier is available. The historical test
+results below do not validate the patched release.
+
 Use the [workflow YAML](https://raw.githubusercontent.com/rowixgroup/gifsnap-dify/refs/heads/codex/dify-plugin/examples/search-gifs.yml) to try **topic → GIF search → JSON result** without configuring an AI model. It returns up to one match and does not send messages or download media.
 
 1. Use a Dify 1.17.1+ workspace where you can create apps and install plugins.
