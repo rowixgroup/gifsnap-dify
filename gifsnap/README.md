@@ -10,6 +10,15 @@ Support: https://github.com/rowixgroup/gifsnap-dify/issues or iraklirowix@gmail.
 API reference: https://gifsnap.com/docs#rest
 Privacy: [Plugin privacy policy](https://github.com/rowixgroup/gifsnap-dify/blob/codex/dify-plugin/gifsnap/PRIVACY.md)
 
+## Security update
+
+Use plugin **0.1.2 or later**. Version 0.1.2 pins `certifi==2026.10.19` in
+both installation requirements and the lockfile to address
+[GHSA-6q48-6c7w-9gw2](https://github.com/advisories/GHSA-6q48-6c7w-9gw2).
+Existing installations need a plugin upgrade; changing the source repository
+alone does not update a running Dify workspace. Keep TLS and package signature
+verification enabled. Marketplace publication may lag the source release.
+
 ## Install from Dify Marketplace
 
 1. Open [GifSnap on Dify Marketplace](https://marketplace.dify.ai/plugin/rowixgroup/gifsnap)
@@ -95,7 +104,7 @@ python3.12 -m venv .venv
 . .venv/bin/activate
 pip install -r gifsnap/requirements.txt
 python -m unittest discover -s tests -v
-dify plugin package ./gifsnap -o ./gifsnap-0.1.1.difypkg
+dify plugin package ./gifsnap -o ./gifsnap-0.1.2.difypkg
 ```
 
 The tests use synthetic responses and make no external API requests. They cover

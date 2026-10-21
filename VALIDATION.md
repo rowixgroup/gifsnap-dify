@@ -1,5 +1,26 @@
 # Validation record
 
+## October 22, 2026 — 0.1.2 certificate-bundle security update
+
+- Updated only `certifi` from 2026.7.22 to 2026.10.19 in the dependency closure;
+  added the exact pin to both installation manifests and regenerated `uv.lock`.
+- 36 existing offline tests pass. No production GIF searches were made.
+- The built 0.1.2 package loads in official CLI 0.6.11; provider validation
+  succeeds and invalid search input is rejected.
+- Verified the affected `emSign ECC Root CA - G3` root is absent from the
+  installed certifi bundle and the HTTPX trust store; hostname verification
+  and certificate verification remain enabled.
+- Online Marketplace Toolkit validation of the package: zero blocking or
+  execution failures; OSV found no known vulnerabilities in the locked set
+  (39 entries). This is a point-in-time scan, not a security guarantee.
+- Existing runtime code, permissions, privacy text, API behavior and the
+  original GIF/media URLs are unchanged. The package carries the updated pin
+  and lockfile; this is not merely an update to the local test environment.
+- Full Dify Cloud/host and signed Marketplace installation have not been
+  re-tested for 0.1.2. The historical example remains pinned to 0.1.0 and is
+  explicitly marked unsuitable for new deployments until its signed package
+  identifier can be updated after Marketplace publication.
+
 ## October 19, 2026 — importable workflow and signed Marketplace installation
 
 - 36 offline tests pass, including the example's variable bindings, empty/error
@@ -65,8 +86,8 @@ Run offline tests from the repository root:
 ```sh
 uv sync --project gifsnap --frozen --no-dev
 gifsnap/.venv/bin/python -m unittest discover -s tests -v
-dify plugin package ./gifsnap -o ./gifsnap-0.1.1.difypkg
-gifsnap/.venv/bin/python tests/package_smoke.py gifsnap-0.1.1.difypkg --cli dify
+dify plugin package ./gifsnap -o ./gifsnap-0.1.2.difypkg
+gifsnap/.venv/bin/python tests/package_smoke.py gifsnap-0.1.2.difypkg --cli dify
 ```
 
 The default package smoke test does not call GifSnap. `--live` explicitly enables

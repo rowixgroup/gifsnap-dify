@@ -1,8 +1,9 @@
 [project]
 name = "gifsnap-dify"
-version = "0.1.0"
+version = "0.1.2"
 requires-python = ">=3.12,<3.13"
 dependencies = [
+    "certifi==2026.10.19",
     "dify-plugin==0.10.2",
     "httpx==0.28.1",
 ]
