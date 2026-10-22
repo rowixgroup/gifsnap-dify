@@ -11,7 +11,7 @@ app:
 dependencies:
 - type: marketplace
   value:
-    marketplace_plugin_unique_identifier: rowixgroup/gifsnap:0.1.0@a2a60aaee179e3dbe9826795c2ff73dfb0cf722945b17c52fd6a9066c5ddc6fe
+    marketplace_plugin_unique_identifier: rowixgroup/gifsnap:0.1.2@a5a0a0bfb6cd2f679a6b92f9869e0398fafaf5315f858d80baa5f831682cdeca
 kind: app
 version: 0.7.0
 workflow:
