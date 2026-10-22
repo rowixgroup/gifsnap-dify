@@ -1,5 +1,25 @@
 # Validation record
 
+## October 22, 2026 — signed 0.1.2 workflow example
+
+- Updated the importable example and host harness to the exact signed 0.1.2
+  identifier in Dify's public Marketplace manifest.
+- 36 offline checks and plugin validation CI passed.
+- The [workflow YAML](examples/search-gifs.yml), SHA-256
+  `db519a186156c1cf0ff5ab0a928dcd413a61706f3164a7c4b51e2ba13efa8098`,
+  imported into a fresh Dify 1.17.1 workspace without warnings. Dify detected
+  and installed signed Marketplace 0.1.2 with signature enforcement enabled.
+- Tool discovery, the imported graph, and invalid-input rejection passed.
+  One `happy cat` QA search returned one real GIF with the full original media
+  URL, poster and structured output unchanged through the End node. The optional
+  animated-preview field was absent in this result.
+- [Successful host test](https://github.com/rowixgroup/gifsnap-dify/actions/runs/39838075596),
+  source `1465a0a18a5c59eb6a62851f623772d5e20fcb44`; the live search began at
+  19:14:32 UTC. Test services, volumes and ephemeral credentials were removed.
+- This verifies the console API and workflow engine, not the visual editor or
+  Dify Cloud. One installation and one live search are owner QA, not independent
+  usage or revenue. Existing customer workspaces were not changed.
+
 ## October 22, 2026 — 0.1.2 certificate-bundle security update
 
 - Updated only `certifi` from 2026.7.22 to 2026.10.19 in the dependency closure;
@@ -16,10 +36,9 @@
 - Existing runtime code, permissions, privacy text, API behavior and the
   original GIF/media URLs are unchanged. The package carries the updated pin
   and lockfile; this is not merely an update to the local test environment.
-- Full Dify Cloud/host and signed Marketplace installation have not been
-  re-tested for 0.1.2. The historical example remains pinned to 0.1.0 and is
-  explicitly marked unsuitable for new deployments until its signed package
-  identifier can be updated after Marketplace publication.
+- At packaging time, signed Marketplace installation had not been re-tested
+  and the historical example still pinned 0.1.0. The later verification above
+  supersedes that limitation for the disposable host; Dify Cloud remains untested.
 
 ## October 19, 2026 — importable workflow and signed Marketplace installation
 

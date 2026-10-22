@@ -30,7 +30,7 @@ import httpx
 import yaml
 
 DIFY_REVISION = "8387590ace4a094de812b7847fc6a4c3a27cd52b"
-MARKETPLACE_IDENTIFIER = "rowixgroup/gifsnap:0.1.0@a2a60aaee179e3dbe9826795c2ff73dfb0cf722945b17c52fd6a9066c5ddc6fe"
+MARKETPLACE_IDENTIFIER = "rowixgroup/gifsnap:0.1.2@a5a0a0bfb6cd2f679a6b92f9869e0398fafaf5315f858d80baa5f831682cdeca"
 BASE_URL = "http://127.0.0.1:51873"
 PROVIDER_ID = "rowixgroup/gifsnap/gifsnap"
 SERVICES = ("init_permissions", "db_postgres", "redis", "ssrf_proxy", "plugin_daemon", "api", "worker")

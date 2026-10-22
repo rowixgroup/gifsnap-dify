@@ -1,10 +1,8 @@
 # Search GIFs workflow
 
-**Security notice:** this historical example pins 0.1.0, which includes a known
-`certifi` vulnerability. Do not import it for a new deployment. Use manual
-workflow setup with GifSnap 0.1.2 or later; the example will be updated after
-the signed Marketplace 0.1.2 identifier is available. The historical test
-results below do not validate the patched release.
+This example pins the signed Marketplace **0.1.2** security update, published
+October 22, 2026. Existing workspaces using an older version need a plugin
+upgrade; importing a new workflow does not update other apps automatically.
 
 Use the [workflow YAML](https://raw.githubusercontent.com/rowixgroup/gifsnap-dify/refs/heads/codex/dify-plugin/examples/search-gifs.yml) to try **topic → GIF search → JSON result** without configuring an AI model. It returns up to one match and does not send messages or download media.
 
@@ -17,7 +15,7 @@ Use the [workflow YAML](https://raw.githubusercontent.com/rowixgroup/gifsnap-dif
 https://raw.githubusercontent.com/rowixgroup/gifsnap-dify/refs/heads/codex/dify-plugin/examples/search-gifs.yml
 ```
 
-The dependency is pinned to the approved Marketplace **0.1.0** package, including its signed package identifier. The source repository's newer documentation version does not mean a newer Marketplace package is approved. Do not replace that identifier with the checksum of an unsigned preview or disable package verification.
+The dependency is pinned to the approved Marketplace **0.1.2** package, including its signed package identifier. Do not replace that identifier with the checksum of an unsigned preview or disable package verification.
 
 ## Read the result
 
@@ -35,7 +33,7 @@ Enter only a topic, 1–200 characters after trimming. Do not include private co
 
 ## Verification
 
-This exact file passed a [fresh Dify 1.17.1 import and workflow test](https://github.com/rowixgroup/gifsnap-dify/actions/runs/39236905817) on October 19, 2026. It imported without warnings, resolved the signed Marketplace 0.1.0 dependency with signature verification enabled, rejected invalid input, and returned one real GIF with its full URL and structured output unchanged. Temporary services and test credentials were removed afterward.
+This exact file passed a [fresh Dify 1.17.1 import and workflow test](https://github.com/rowixgroup/gifsnap-dify/actions/runs/39838075596) on October 22, 2026. It imported without warnings, installed the signed Marketplace **0.1.2** package with signature verification enabled, rejected invalid input, and returned one real GIF with its full URL and structured output unchanged. Temporary services and test credentials were removed afterward. The identifier comes from Dify's public Marketplace manifest, not the unsigned GitHub archive.
 
 The host test used Dify's console API and workflow engine, not its visual editor or Dify Cloud. Its one installation and one search were owner QA, not an independent integration. The 36 offline checks cover selectors, plugin input validation, original URL forwarding, empty results, failures and test isolation using synthetic responses. No live GIF search is required to run them:
 

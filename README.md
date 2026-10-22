@@ -42,11 +42,10 @@ If your workspace policy permits local packages, download a `.difypkg` from
 Use the Marketplace installation when your workspace requires Marketplace
 signatures; do not weaken its package-verification policy.
 
-### Historical workflow example
+### Importable workflow example
 
-The example currently pins Marketplace 0.1.0 and must **not** be imported for
-new deployments until it is updated to the signed 0.1.2 package identifier.
-Use the manual setup above with 0.1.2 or later instead.
+The example pins the signed Marketplace **0.1.2** package, published October 22,
+2026. Import it as a new workflow; existing installations need a plugin upgrade.
 
 The [minimal workflow example](examples/README.md) connects a manual GIF topic to
 Search GIFs and returns structured media links. It needs no AI model credentials.
