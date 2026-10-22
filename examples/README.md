@@ -33,7 +33,7 @@ Enter only a topic, 1–200 characters after trimming. Do not include private co
 
 ## Verification
 
-The earlier 0.1.0 example passed a [Dify 1.17.1 import and workflow test](https://github.com/rowixgroup/gifsnap-dify/actions/runs/39236905817) on October 19, 2026. That run is historical; a fresh signed 0.1.2 import test is pending for this update. The new identifier comes from Dify's public Marketplace manifest, not the unsigned GitHub archive.
+This exact file passed a [fresh Dify 1.17.1 import and workflow test](https://github.com/rowixgroup/gifsnap-dify/actions/runs/39838075596) on October 22, 2026. It imported without warnings, installed the signed Marketplace **0.1.2** package with signature verification enabled, rejected invalid input, and returned one real GIF with its full URL and structured output unchanged. Temporary services and test credentials were removed afterward. The identifier comes from Dify's public Marketplace manifest, not the unsigned GitHub archive.
 
 The host test used Dify's console API and workflow engine, not its visual editor or Dify Cloud. Its one installation and one search were owner QA, not an independent integration. The 36 offline checks cover selectors, plugin input validation, original URL forwarding, empty results, failures and test isolation using synthetic responses. No live GIF search is required to run them:
 
