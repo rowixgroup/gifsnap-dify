@@ -1,5 +1,22 @@
 # Validation record
 
+## November 2, 2026 — 0.1.3 current brand icon
+
+- Replaced the obsolete lightning icon with the approved 512×512 GifSnap app
+  logo, copied byte-for-byte. Both manifest and tool-provider icons use it.
+- All 36 existing offline tests passed. The exact 0.1.3 archive loads with the
+  official CLI 0.6.11; credential validation passes and empty input is rejected.
+- Local Marketplace Toolkit checks: zero blocking or execution failures; no
+  known vulnerabilities reported in the locked dependency set at this check.
+- Archive comparison with 0.1.2: only `_assets/icon.png`, `manifest.yaml`,
+  `pyproject.toml` and `uv.lock` differ. Changes to the latter three are version
+  fields only; runtime code, dependency versions, permissions and privacy are
+  unchanged. No files were added or removed from the package.
+- No live API search or installation telemetry was generated. Full Cloud/host
+  installation was not repeated for this asset change. The signed example
+  remains pinned to the previously verified 0.1.2 until a new signed identifier
+  is published. Source submission is not Marketplace approval.
+
 ## October 22, 2026 — signed 0.1.2 workflow example
 
 - Updated the importable example and host harness to the exact signed 0.1.2
@@ -105,8 +122,8 @@ Run offline tests from the repository root:
 ```sh
 uv sync --project gifsnap --frozen --no-dev
 gifsnap/.venv/bin/python -m unittest discover -s tests -v
-dify plugin package ./gifsnap -o ./gifsnap-0.1.2.difypkg
-gifsnap/.venv/bin/python tests/package_smoke.py gifsnap-0.1.2.difypkg --cli dify
+dify plugin package ./gifsnap -o ./gifsnap-0.1.3.difypkg
+gifsnap/.venv/bin/python tests/package_smoke.py gifsnap-0.1.3.difypkg --cli dify
 ```
 
 The default package smoke test does not call GifSnap. `--live` explicitly enables
