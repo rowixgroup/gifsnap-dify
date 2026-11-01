@@ -113,7 +113,7 @@ python3.12 -m venv .venv
 . .venv/bin/activate
 pip install -r gifsnap/requirements.txt
 python -m unittest discover -s tests -v
-dify plugin package ./gifsnap -o ./gifsnap-0.1.2.difypkg
+dify plugin package ./gifsnap -o ./gifsnap-0.1.3.difypkg
 ```
 
 The tests use synthetic responses and make no external API requests. They cover
